@@ -35,8 +35,9 @@
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_below="@id/subtitle"
+        android:backgroundTint="#002D6D"
         android:text="Enfermería"
-        android:textSize="20sp"/>
+        android:textSize="20sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -55,6 +56,7 @@
                 android:id="@+id/contactoButton"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
+                android:backgroundTint="#002D6D"
                 android:text="Contacto Cercano"
                 android:textSize="18sp" />
 
@@ -87,23 +89,24 @@
         <Button
             android:id="@+id/tutorButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
+            android:backgroundTint="#002D6D"
             android:text="Tutor"
-            android:layout_marginStart="10dp"/>
+            android:textSize="18sp" />
 
     </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Al presionar cualquier botón se enviará una alerta de emergencia"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="59dp"
+        android:background="#FFF3CD"
         android:gravity="center"
         android:padding="15dp"
-        android:background="#FFF3CD"
-        android:textColor="#856404"
-        android:layout_marginBottom="20dp"/>
+        android:text="Al presionar cualquier botón se enviará una alerta de emergencia"
+        android:textColor="#856404" />
 
 </RelativeLayout>

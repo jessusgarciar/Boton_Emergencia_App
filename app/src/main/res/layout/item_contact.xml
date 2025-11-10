@@ -28,14 +28,16 @@
             android:id="@+id/editContactButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="#002D6D"
             android:text="Editar" />
 
         <Button
             android:id="@+id/deleteContactButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Eliminar"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="8dp"
+            android:backgroundTint="#002D6D"
+            android:text="Eliminar" />
         
         <CheckBox
             android:id="@+id/selectContactCheck"

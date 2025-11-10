@@ -9,6 +9,7 @@
         android:id="@+id/addContactFab"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:backgroundTint="#002D6D"
         android:text="Añadir contacto" />
 
     <androidx.recyclerview.widget.RecyclerView
