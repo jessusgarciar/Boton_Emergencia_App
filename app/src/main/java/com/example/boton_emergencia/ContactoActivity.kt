@@ -29,10 +29,11 @@ class ContactoActivity : AppCompatActivity() {
             val number = input?.text.toString().trim()
             val label = labelInput?.text.toString().trim()
             if (number.isNotEmpty()) {
-                // Basic phone validation: digits only and length
-                val digits = number.replace("\\D".toRegex(), "")
-                if (digits.length < 7) {
-                    input?.error = "Número inválido"
+                // Normalize and validate phone
+                val digits = PhoneUtils.normalize(number)
+                val msg = PhoneUtils.validationMessage(digits)
+                if (msg.isNotEmpty()) {
+                    input?.error = msg
                     return@setOnClickListener
                 }
                 // Verify control number exists
@@ -45,10 +46,10 @@ class ContactoActivity : AppCompatActivity() {
                 val contactId = intent.getLongExtra("contactId", -1L)
                 exec.execute {
                     val id: Long = if (contactId > 0) {
-                        val rows = db.updateContact(contactId, number, label)
+                        val rows = db.updateContact(contactId, digits, label)
                         if (rows > 0) contactId else -1L
                     } else {
-                        db.addContact(controlNumber, number, label)
+                        db.addContact(controlNumber, digits, label)
                     }
                     runOnUiThread {
                         if (id == -1L) {

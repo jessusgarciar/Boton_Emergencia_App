@@ -10,13 +10,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.boton_emergencia.db.DbHelper
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.util.concurrent.Executors
 
 class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ContactAdapter
-    private lateinit var addButton: Button
+    private lateinit var addButton: FloatingActionButton
     private lateinit var db: DbHelper
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -85,12 +86,12 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
     }
 
     override fun onEdit(contact: Contact) {
-    val i = Intent(this, ContactoActivity::class.java)
-    i.putExtra(ContactoActivity.EXTRA_CONTROL_NUMBER, controlNumber)
-    i.putExtra("contactId", contact.contactId)
-    i.putExtra("phone", contact.phone)
-    i.putExtra("label", contact.label)
-    startActivityForResult(i, REQ_EDIT)
+        val i = Intent(this, ContactoActivity::class.java)
+        i.putExtra(ContactoActivity.EXTRA_CONTROL_NUMBER, controlNumber)
+        i.putExtra("contactId", contact.contactId)
+        i.putExtra("phone", contact.phone)
+        i.putExtra("label", contact.label)
+        startActivityForResult(i, REQ_EDIT)
     }
 
     override fun onDelete(contact: Contact) {

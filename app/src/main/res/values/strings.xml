@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Boton_Emergencia</string>
+    <string name="widget_enfermeria_description">Avisa a la enfermería.</string>
+    <string name="widget_tutor_description">Avisa a tu tutor.</string>
+    <string name="widget_contacto_description">Avisa a tu contacto cercano.</string>
 </resources>
