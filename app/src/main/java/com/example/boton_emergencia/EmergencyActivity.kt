@@ -2,9 +2,7 @@ package com.example.boton_emergencia
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -25,8 +23,9 @@ class EmergencyActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_CODE_CONTACTO = 1001
+        private const val REQUEST_CODE_SELECT_CONTACT = 1002
         private const val ENFERMERIA_WHATSAPP = "+524493935203"
-        private const val TUTOR_WHATSAPP = "+524651130447"
+        private const val TUTOR_WHATSAPP = "+524651012895"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,30 +35,16 @@ class EmergencyActivity : AppCompatActivity() {
         db = DbHelper(this)
         controlNumber = intent.getStringExtra("CONTROL_NUMBER")
 
-        // --- Widget Handling ---
         if (intent.hasExtra("WIDGET_ACTION")) {
             val widgetAction = intent.getStringExtra("WIDGET_ACTION")
             handleWidgetAction(widgetAction)
-            // Finish the activity after a short delay to allow WhatsApp to open
             Handler(Looper.getMainLooper()).postDelayed({ finish() }, 2000)
-            return // Skip normal button setup
+            return
         }
 
         val selectedContactId = intent.getLongExtra("selectedContactId", -1L)
         if (selectedContactId > 0) {
-            try {
-                val c = db.getContactById(selectedContactId)
-                if (c != null && c.moveToFirst()) {
-                    val contactId = c.getLong(c.getColumnIndexOrThrow("contact_id"))
-                    val phone = c.getString(c.getColumnIndexOrThrow("phone"))
-                    c.close()
-                    sendWhatsAppMessage("ayuda a mi contacto cercano", phone, contactId)
-                } else {
-                    c?.close()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            sendToContact(selectedContactId, "ayuda a mi contacto cercano")
         }
 
         val enfermeriaButton = findViewById<Button>(R.id.enfermeriaButton)
@@ -76,12 +61,12 @@ class EmergencyActivity : AppCompatActivity() {
             }
 
             if (v.id == R.id.contactoButton) {
-                handleContactButtonClick(reason)
+                handleContactAction(reason)
             } else {
                 val targetNumber = when (v.id) {
                     R.id.enfermeriaButton -> ENFERMERIA_WHATSAPP
                     R.id.tutorButton -> TUTOR_WHATSAPP
-                    else -> "" // Should not happen
+                    else -> ""
                 }
                 sendWhatsAppMessage(reason, targetNumber)
             }
@@ -98,70 +83,76 @@ class EmergencyActivity : AppCompatActivity() {
     }
 
     private fun handleWidgetAction(action: String?) {
-        val reason: String
-        val targetNumber: String?
-
         when (action) {
-            WidgetReceiver.TYPE_ENFERMERIA -> {
-                reason = "atención médica urgente en enfermería"
-                targetNumber = ENFERMERIA_WHATSAPP
-                sendWhatsAppMessage(reason, targetNumber)
-            }
-            WidgetReceiver.TYPE_TUTOR -> {
-                reason = "ayuda a mi tutor"
-                targetNumber = TUTOR_WHATSAPP
-                sendWhatsAppMessage(reason, targetNumber)
-            }
-            WidgetReceiver.TYPE_CONTACTO -> {
-                reason = "ayuda a mi contacto cercano"
-                handleContactAction(reason)
-            }
+            WidgetReceiver.TYPE_ENFERMERIA -> sendWhatsAppMessage("atención médica urgente en enfermería", ENFERMERIA_WHATSAPP)
+            WidgetReceiver.TYPE_TUTOR -> sendWhatsAppMessage("ayuda a mi tutor", TUTOR_WHATSAPP)
+            WidgetReceiver.TYPE_CONTACTO -> handleContactAction("ayuda a mi contacto cercano")
         }
     }
 
     private fun handleContactAction(reason: String) {
+        val prefs = getSharedPreferences("contact_prefs", MODE_PRIVATE)
+        val key = "selected_${controlNumber}"
+        val selectedId = prefs.getLong(key, -1L)
+
+        if (selectedId > 0) {
+            sendToContact(selectedId, reason)
+            return
+        }
+
         val cursor = db.getContactsForUser(controlNumber ?: "")
-        if (cursor == null || !cursor.moveToFirst()) {
-            Toast.makeText(this, "No tienes un contacto cercano guardado", Toast.LENGTH_LONG).show()
-            // Optionally, open the app to add a contact
-            val intent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        when (cursor?.count) {
+            0, null -> {
+                // No contacts, ask to add one
+                pendingReason = reason
+                val intent = Intent(this, ContactoActivity::class.java)
+                intent.putExtra(ContactoActivity.EXTRA_CONTROL_NUMBER, controlNumber)
+                startActivityForResult(intent, REQUEST_CODE_CONTACTO)
             }
-            startActivity(intent)
-        } else {
-            val contactId = cursor.getLong(cursor.getColumnIndexOrThrow("contact_id"))
-            val phone = cursor.getString(cursor.getColumnIndexOrThrow("phone"))
-            cursor.close()
-            sendWhatsAppMessage(reason, phone, contactId)
+            1 -> {
+                // Only one contact, use it by default
+                cursor.moveToFirst()
+                val contactId = cursor.getLong(cursor.getColumnIndexOrThrow("contact_id"))
+                sendToContact(contactId, reason)
+            }
+            else -> {
+                // Multiple contacts, ask user to select one
+                pendingReason = reason
+                Toast.makeText(this, "Por favor, selecciona un contacto principal", Toast.LENGTH_LONG).show()
+                val intent = Intent(this, ContactListActivity::class.java)
+                intent.putExtra(ContactListActivity.EXTRA_CONTROL, controlNumber)
+                startActivityForResult(intent, REQUEST_CODE_SELECT_CONTACT)
+            }
         }
+        cursor?.close()
     }
 
-    private fun handleContactButtonClick(reason: String) {
-        val cursor = db.getContactsForUser(controlNumber ?: "")
-        if (cursor == null || !cursor.moveToFirst()) {
-            pendingReason = reason
-            val intent = Intent(this, ContactoActivity::class.java)
-            intent.putExtra(ContactoActivity.EXTRA_CONTROL_NUMBER, controlNumber)
-            startActivityForResult(intent, REQUEST_CODE_CONTACTO)
-            cursor?.close()
-        } else {
-            val contactId = cursor.getLong(cursor.getColumnIndexOrThrow("contact_id"))
-            val phone = cursor.getString(cursor.getColumnIndexOrThrow("phone"))
-            cursor.close()
-            sendWhatsAppMessage(reason, phone, contactId)
+    private fun sendToContact(contactId: Long, reason: String) {
+        try {
+            val c = db.getContactById(contactId)
+            if (c != null && c.moveToFirst()) {
+                val phone = c.getString(c.getColumnIndexOrThrow("phone"))
+                c.close()
+                sendWhatsAppMessage(reason, phone, contactId)
+            } else {
+                c?.close()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_CODE_CONTACTO && resultCode == Activity.RESULT_OK) {
-            val cursor = db.getContactsForUser(controlNumber ?: "")
-            if (cursor != null && cursor.moveToFirst() && !pendingReason.isNullOrEmpty()) {
-                val contactId = cursor.getLong(cursor.getColumnIndexOrThrow("contact_id"))
-                val phone = cursor.getString(cursor.getColumnIndexOrThrow("phone"))
-                cursor.close()
-                sendWhatsAppMessage(pendingReason, phone, contactId)
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                REQUEST_CODE_CONTACTO -> handleContactAction(pendingReason ?: "")
+                REQUEST_CODE_SELECT_CONTACT -> {
+                    val selectedId = data?.getLongExtra("selectedContactId", -1L) ?: -1L
+                    if (selectedId > 0) {
+                        sendToContact(selectedId, pendingReason ?: "")
+                    }
+                }
             }
             pendingReason = null
         }
@@ -169,15 +160,12 @@ class EmergencyActivity : AppCompatActivity() {
 
     private fun sendWhatsAppMessage(reason: String?, phoneNumber: String, contactIdForLog: Long? = null) {
         val currentTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
-
         val formattedNumber = PhoneUtils.formatPhoneNumberForWhatsApp(phoneNumber)
         val message = buildAlertMessage(reason, currentTime)
 
         try {
             val url = "https://api.whatsapp.com/send?phone=$formattedNumber&text=${URLEncoder.encode(message, "UTF-8")}"
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse(url)
-            }
+            val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse(url) }
 
             if (packageManager.resolveActivity(intent, 0) != null) {
                 db.addAlert(controlNumber ?: "", contactIdForLog, message)

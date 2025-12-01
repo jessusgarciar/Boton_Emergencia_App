@@ -11,8 +11,8 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:icon="@drawable/itpa"
+        android:label="Halcones al Rescate"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Boton_Emergencia">
@@ -26,6 +26,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
+                android:label="Enfermeria"
                 android:resource="@xml/enfermeria_widget_info" />
         </receiver>
 
@@ -37,6 +38,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
+                android:label="Tutor"
                 android:resource="@xml/tutor_widget_info" />
         </receiver>
 
@@ -48,6 +50,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
+                android:label="Contacto"
                 android:resource="@xml/contacto_widget_info" />
         </receiver>
 

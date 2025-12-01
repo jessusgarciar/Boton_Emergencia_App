@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
+    android:fitsSystemWindows="true"
     android:padding="24dp">
 
     <ImageView
@@ -48,6 +49,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Número de control"
+                android:textColorHint="@color/black"
                 app:boxBackgroundMode="outline"
                 app:boxCornerRadiusTopStart="8dp"
                 app:boxCornerRadiusTopEnd="8dp"
@@ -66,6 +68,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:hint="Contraseña"
+                android:textColorHint="@color/black"
                 app:endIconMode="password_toggle"
                 app:boxBackgroundMode="outline"
                 app:boxCornerRadiusTopStart="8dp"

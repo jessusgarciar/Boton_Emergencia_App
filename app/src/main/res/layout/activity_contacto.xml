@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
+    android:fitsSystemWindows="true"
     android:padding="24dp">
 
     <ImageView
@@ -59,15 +60,14 @@
                     android:id="@+id/contactNumberInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="phone"
-                    android:hint="Ej: 521234567890"/>
+                    android:inputType="phone"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="Etiqueta"
+                android:hint="Nombre"
                 app:boxBackgroundMode="outline"
                 app:boxCornerRadiusTopStart="8dp"
                 app:boxCornerRadiusTopEnd="8dp"
@@ -78,8 +78,7 @@
                     android:id="@+id/contactLabelInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:hint="Ej: Papá, Tutor"/>
+                    android:inputType="text" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <Button

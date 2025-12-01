@@ -4,12 +4,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class ContactAdapter(
     private var items: MutableList<Contact>,
-    private val listener: Listener
+    private val listener: Listener,
+    private val isSelectionMode: Boolean
 ) : RecyclerView.Adapter<ContactAdapter.ViewHolder>() {
 
     interface Listener {
@@ -19,23 +21,16 @@ class ContactAdapter(
         fun onSelect(contact: Contact)
     }
 
+    private var selectedContactId: Long = -1
+
     fun setItems(newItems: List<Contact>) {
         items.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
     }
 
-    // single selection position
-    private var selectedPos = RecyclerView.NO_POSITION
-    private var selectedContactId: Long = -1L
-
-    /**
-     * Set selected contact by id (used to restore previous selection)
-     */
     fun setSelectedContactId(contactId: Long) {
         selectedContactId = contactId
-        selectedPos = items.indexOfFirst { it.contactId == contactId }
-        if (selectedPos == -1) selectedPos = RecyclerView.NO_POSITION
         notifyDataSetChanged()
     }
 
@@ -48,27 +43,23 @@ class ContactAdapter(
         val c = items[position]
         holder.label.text = c.label ?: "(sin etiqueta)"
         holder.phone.text = c.phone
+        holder.itemView.setOnClickListener { listener.onClick(c) }
 
-    holder.itemView.setOnClickListener { listener.onClick(c) }
-    holder.editBtn.setOnClickListener { listener.onEdit(c) }
-    holder.deleteBtn.setOnClickListener { listener.onDelete(c) }
-        // checkbox handling: show checked only for selectedPos
-        holder.selectCheck.setOnCheckedChangeListener(null)
-        holder.selectCheck.isChecked = (position == selectedPos)
-        holder.selectCheck.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                val previous = selectedPos
-                selectedPos = holder.adapterPosition
-                notifyItemChanged(previous)
-                notifyItemChanged(selectedPos)
-                selectedContactId = c.contactId
-                listener.onSelect(c)
-            } else {
-                // if unchecked by user, clear selection
-                if (selectedPos == holder.adapterPosition) {
-                    selectedPos = RecyclerView.NO_POSITION
-                }
-            }
+        holder.selectCheck.isChecked = c.contactId == selectedContactId
+
+        if (isSelectionMode) {
+            holder.editBtn.visibility = View.GONE
+            holder.deleteBtn.visibility = View.GONE
+            holder.selectCheck.visibility = View.VISIBLE
+            holder.selectCheck.isEnabled = true
+            holder.selectCheck.setOnClickListener { listener.onSelect(c) }
+        } else {
+            holder.editBtn.visibility = View.VISIBLE
+            holder.deleteBtn.visibility = View.VISIBLE
+            holder.selectCheck.visibility = View.VISIBLE
+            holder.selectCheck.isEnabled = false
+            holder.editBtn.setOnClickListener { listener.onEdit(c) }
+            holder.deleteBtn.setOnClickListener { listener.onDelete(c) }
         }
     }
 
@@ -79,6 +70,6 @@ class ContactAdapter(
         val phone: TextView = v.findViewById(R.id.contactPhone)
         val editBtn: Button = v.findViewById(R.id.editContactButton)
         val deleteBtn: Button = v.findViewById(R.id.deleteContactButton)
-        val selectCheck: android.widget.CheckBox = v.findViewById(R.id.selectContactCheck)
+        val selectCheck: CheckBox = v.findViewById(R.id.selectContactCheck)
     }
 }

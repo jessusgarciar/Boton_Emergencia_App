@@ -21,24 +21,31 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
     private lateinit var db: DbHelper
     private val executor = Executors.newSingleThreadExecutor()
 
+    private var controlNumber: String = ""
+    private var isSelectionMode: Boolean = false
+
     companion object {
         const val EXTRA_CONTROL = "controlNumber"
+        const val EXTRA_IS_SELECTION_MODE = "isSelectionMode"
         const val REQ_ADD = 1001
         const val REQ_EDIT = 1002
     }
-
-    private var controlNumber: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_contact_list)
 
         controlNumber = intent.getStringExtra(EXTRA_CONTROL) ?: ""
+        isSelectionMode = intent.getBooleanExtra(EXTRA_IS_SELECTION_MODE, false)
         db = DbHelper(this)
+
+        if (isSelectionMode) {
+            title = "Seleccionar Contacto Principal"
+        }
 
         recyclerView = findViewById(R.id.contactsRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ContactAdapter(mutableListOf(), this)
+        adapter = ContactAdapter(mutableListOf(), this, isSelectionMode)
         recyclerView.adapter = adapter
 
         addButton = findViewById(R.id.addContactFab)
@@ -65,7 +72,6 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
                 }
                 cursor.close()
             }
-            // restore selected contact id from prefs
             val prefs = getSharedPreferences("contact_prefs", MODE_PRIVATE)
             val key = "selected_${controlNumber}"
             val savedId = prefs.getLong(key, -1L)
@@ -80,7 +86,7 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK) {
+        if (resultCode == Activity.RESULT_OK && (requestCode == REQ_ADD || requestCode == REQ_EDIT)) {
             loadContacts()
         }
     }
@@ -97,11 +103,17 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
     override fun onDelete(contact: Contact) {
         AlertDialog.Builder(this)
             .setTitle("Eliminar contacto")
-            .setMessage("¿Eliminar ${contact.label ?: contact.phone}? ")
+            .setMessage("¿Eliminar ${contact.label ?: contact.phone}?")
             .setPositiveButton("Eliminar") { _, _ ->
                 executor.execute {
                     db.deleteContact(contact.contactId)
                     runOnUiThread {
+                        // Also clear selection if the selected contact is deleted
+                        val prefs = getSharedPreferences("contact_prefs", MODE_PRIVATE)
+                        val key = "selected_${controlNumber}"
+                        if (prefs.getLong(key, -1L) == contact.contactId) {
+                            prefs.edit().remove(key).apply()
+                        }
                         Toast.makeText(this, "Contacto eliminado", Toast.LENGTH_SHORT).show()
                         loadContacts()
                     }
@@ -112,20 +124,25 @@ class ContactListActivity : AppCompatActivity(), ContactAdapter.Listener {
     }
 
     override fun onClick(contact: Contact) {
-        // Use the selected contact to send WhatsApp message via EmergencyActivity behavior
-        val i = Intent(this, EmergencyActivity::class.java)
-        i.putExtra("controlNumber", controlNumber)
-        i.putExtra("selectedContactId", contact.contactId)
-        startActivity(i)
+        if (isSelectionMode) {
+            onSelect(contact)
+        } else {
+            val i = Intent(this, EmergencyActivity::class.java)
+            i.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT
+            i.putExtra("controlNumber", controlNumber)
+            i.putExtra("selectedContactId", contact.contactId)
+            startActivity(i)
+            finish()
+        }
     }
 
     override fun onSelect(contact: Contact) {
-        // persist selection per user
         val prefs = getSharedPreferences("contact_prefs", MODE_PRIVATE)
         val key = "selected_${controlNumber}"
         prefs.edit().putLong(key, contact.contactId).apply()
 
-        // Return the selected contact id to the caller
+        Toast.makeText(this, "\"${contact.label}\" es ahora tu contacto principal", Toast.LENGTH_SHORT).show()
+
         val result = Intent()
         result.putExtra("selectedContactId", contact.contactId)
         setResult(Activity.RESULT_OK, result)
