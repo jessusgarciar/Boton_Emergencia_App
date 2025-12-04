@@ -17,49 +17,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Boton_Emergencia">
 
-        <!-- Widget Providers -->
-        <receiver
-            android:name=".EnfermeriaWidget"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:label="Enfermeria"
-                android:resource="@xml/enfermeria_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".TutorWidget"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:label="Tutor"
-                android:resource="@xml/tutor_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".ContactoWidget"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:label="Contacto"
-                android:resource="@xml/contacto_widget_info" />
-        </receiver>
-
-        <!-- Broadcast Receiver for Widget Clicks -->
-        <receiver
-            android:name=".WidgetReceiver"
-            android:enabled="true"
-            android:exported="false" />
-
         <!-- Activities -->
         <activity
             android:name=".MainActivity"
@@ -81,6 +38,83 @@
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
+
+        <!-- Widget Receivers -->
+        <receiver
+            android:name=".WidgetReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Small Widget Providers -->
+        <receiver
+            android:name=".EnfermeriaWidget"
+            android:exported="true"
+            android:label="Enfermería (Pequeño)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/enfermeria_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".TutorWidget"
+            android:exported="true"
+            android:label="Tutor (Pequeño)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tutor_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".ContactoWidget"
+            android:exported="true"
+            android:label="Contacto (Pequeño)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/contacto_widget_info" />
+        </receiver>
+
+        <!-- Large Widget Providers -->
+        <receiver
+            android:name=".EnfermeriaWidgetLarge"
+            android:exported="true"
+            android:label="Enfermería (Grande)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/enfermeria_widget_info_large" />
+        </receiver>
+        <receiver
+            android:name=".TutorWidgetLarge"
+            android:exported="true"
+            android:label="Tutor (Grande)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tutor_widget_info_large" />
+        </receiver>
+        <receiver
+            android:name=".ContactoWidgetLarge"
+            android:exported="true"
+            android:label="Contacto (Grande)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/contacto_widget_info_large" />
+        </receiver>
+
     </application>
 
 </manifest>
