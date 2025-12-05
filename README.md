@@ -167,7 +167,7 @@ Editar constantes en `EmergencyActivity.kt`:
 
 ```kotlin
 companion object {
-    private const val ENFERMERIA_WHATSAPP = "+524493935203"
+    private const val ENFERMERIA_WHATSAPP = "+521111111111"
     private const val DEFAULT_CHATBOT_NUMBER = "521234567890"
 }
 ```
@@ -308,11 +308,9 @@ private fun buildAlertMessage(reason: String?, currentTime: String): String {
 
 - [ ] 📍 Compartir ubicación GPS automáticamente
 - [ ] 🔔 Notificaciones push para confirmación de recepción
-- [ ] 🌐 Soporte multi-idioma (español/inglés)
 - [ ] 🎨 Temas personalizables (claro/oscuro)
 - [ ] 📊 Dashboard con historial de alertas
-- [ ] 🔐 Autenticación biométrica
-- [ ] 📞 Integración con llamadas de emergencia (911)
+- [ ] 📞 Integración llamadas
 - [ ] 💬 Soporte para otros servicios de mensajería (Telegram, SMS)
 
 ---
