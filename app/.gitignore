@@ -1,1 +1,20 @@
 /build
+
+# Firebase - Archivos de configuración sensibles
+google-services.json
+firebase-adminsdk-*.json
+
+# Claves y certificados
+*.jks
+*.keystore
+*.key
+*.pem
+keystore.properties
+signing.properties
+
+# Logs
+*.log
+
+# Archivos generados
+release/
+debug/

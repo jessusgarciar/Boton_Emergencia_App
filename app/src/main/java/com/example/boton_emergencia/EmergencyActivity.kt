@@ -1,22 +1,33 @@
 package com.example.boton_emergencia
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import com.example.boton_emergencia.db.DbHelper
+import com.example.boton_emergencia.PhoneUtils
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class EmergencyActivity : AppCompatActivity() {
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var database: DatabaseReference
     private var controlNumber: String? = null
     private var pendingReason: String? = null
     private lateinit var db: DbHelper
@@ -25,13 +36,23 @@ class EmergencyActivity : AppCompatActivity() {
         private const val REQUEST_CODE_CONTACTO = 1001
         private const val REQUEST_CODE_SELECT_CONTACT = 1002
         private const val ENFERMERIA_WHATSAPP = "+524493935203"
-        private const val TUTOR_WHATSAPP = "+524651012895"
+        private const val TUTOR_WHATSAPP = "+524651130447"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_emergency)
 
+        try {
+            // Inicializar Firebase explícitamente
+            val fbInstance = FirebaseDatabase.getInstance()
+            database = fbInstance.reference
+            Log.d("FIREBASE_TEST", "Firebase inicializado correctamente")
+        } catch (e: Exception) {
+            Log.e("FIREBASE_TEST", "Error al inicializar Firebase: ${e.message}")
+        }
+
+        fusedLocationClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(this)
         db = DbHelper(this)
         controlNumber = intent.getStringExtra("CONTROL_NUMBER")
 
@@ -60,15 +81,16 @@ class EmergencyActivity : AppCompatActivity() {
                 else -> ""
             }
 
+            val targetNumber = when (v.id) {
+                R.id.enfermeriaButton -> ENFERMERIA_WHATSAPP
+                R.id.tutorButton -> TUTOR_WHATSAPP
+                else -> ""
+            }
+
             if (v.id == R.id.contactoButton) {
                 handleContactAction(reason)
             } else {
-                val targetNumber = when (v.id) {
-                    R.id.enfermeriaButton -> ENFERMERIA_WHATSAPP
-                    R.id.tutorButton -> TUTOR_WHATSAPP
-                    else -> ""
-                }
-                sendWhatsAppMessage(reason, targetNumber)
+                startEmergencyProtocol(reason, targetNumber)
             }
         }
 
@@ -84,8 +106,8 @@ class EmergencyActivity : AppCompatActivity() {
 
     private fun handleWidgetAction(action: String?) {
         when (action) {
-            WidgetReceiver.TYPE_ENFERMERIA -> sendWhatsAppMessage("atención médica urgente en enfermería", ENFERMERIA_WHATSAPP)
-            WidgetReceiver.TYPE_TUTOR -> sendWhatsAppMessage("ayuda a mi tutor", TUTOR_WHATSAPP)
+            WidgetReceiver.TYPE_ENFERMERIA -> startEmergencyProtocol("atención médica urgente en enfermería", ENFERMERIA_WHATSAPP)
+            WidgetReceiver.TYPE_TUTOR -> startEmergencyProtocol("ayuda a mi tutor", TUTOR_WHATSAPP)
             WidgetReceiver.TYPE_CONTACTO -> handleContactAction("ayuda a mi contacto cercano")
         }
     }
@@ -103,20 +125,17 @@ class EmergencyActivity : AppCompatActivity() {
         val cursor = db.getContactsForUser(controlNumber ?: "")
         when (cursor?.count) {
             0, null -> {
-                // No contacts, ask to add one
                 pendingReason = reason
                 val intent = Intent(this, ContactoActivity::class.java)
                 intent.putExtra(ContactoActivity.EXTRA_CONTROL_NUMBER, controlNumber)
                 startActivityForResult(intent, REQUEST_CODE_CONTACTO)
             }
             1 -> {
-                // Only one contact, use it by default
                 cursor.moveToFirst()
                 val contactId = cursor.getLong(cursor.getColumnIndexOrThrow("contact_id"))
                 sendToContact(contactId, reason)
             }
             else -> {
-                // Multiple contacts, ask user to select one
                 pendingReason = reason
                 Toast.makeText(this, "Por favor, selecciona un contacto principal", Toast.LENGTH_LONG).show()
                 val intent = Intent(this, ContactListActivity::class.java)
@@ -133,7 +152,7 @@ class EmergencyActivity : AppCompatActivity() {
             if (c != null && c.moveToFirst()) {
                 val phone = c.getString(c.getColumnIndexOrThrow("phone"))
                 c.close()
-                sendWhatsAppMessage(reason, phone, contactId)
+                startEmergencyProtocol(reason, phone, contactId)
             } else {
                 c?.close()
             }
@@ -158,42 +177,66 @@ class EmergencyActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendWhatsAppMessage(reason: String?, phoneNumber: String, contactIdForLog: Long? = null) {
+    private fun startEmergencyProtocol(tipoAlerta: String, targetNumber: String, contactIdForLog: Long? = null) {
+        // Enviar a la nube primero para asegurar registro
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+                registrarEnNube(location?.latitude, location?.longitude, tipoAlerta)
+                sendWhatsAppMessage(tipoAlerta, targetNumber, location?.latitude, location?.longitude, contactIdForLog)
+            }
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+            registrarEnNube(null, null, tipoAlerta)
+            sendWhatsAppMessage(tipoAlerta, targetNumber, null, null, contactIdForLog)
+        }
+    }
+
+    private fun registrarEnNube(lat: Double?, lng: Double?, tipoAlerta: String) {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val alertId = database.child("alertas").push().key ?: "error_id"
+        
+        val alertData = mapOf(
+            "controlNumber" to (controlNumber ?: "Desconocido"),
+            "tipo" to tipoAlerta,
+            "latitud" to (lat ?: 0.0),
+            "longitud" to (lng ?: 0.0),
+            "fecha" to timestamp
+        )
+
+        Log.d("FIREBASE_TEST", "Intentando guardar: $alertData")
+
+        database.child("alertas").child(alertId).setValue(alertData)
+            .addOnSuccessListener {
+                Log.d("FIREBASE_TEST", "¡Éxito! Datos guardados en Firebase")
+                Toast.makeText(this, "Datos en la nube: OK", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Log.e("FIREBASE_TEST", "Fallo al guardar: ${e.message}")
+                Toast.makeText(this, "Error Nube: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun sendWhatsAppMessage(reason: String?, phoneNumber: String, lat: Double? = null, lng: Double? = null, contactIdForLog: Long? = null) {
         val currentTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
         val formattedNumber = PhoneUtils.formatPhoneNumberForWhatsApp(phoneNumber)
-        val message = buildAlertMessage(reason, currentTime)
+        val message = buildAlertMessage(reason, currentTime, lat, lng)
 
         try {
             val url = "https://api.whatsapp.com/send?phone=$formattedNumber&text=${URLEncoder.encode(message, "UTF-8")}"
             val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse(url) }
-
-            if (packageManager.resolveActivity(intent, 0) != null) {
-                db.addAlert(controlNumber ?: "", contactIdForLog, message)
-                startActivity(intent)
-            } else {
-                Toast.makeText(this, "WhatsApp no está instalado.", Toast.LENGTH_LONG).show()
-            }
+            db.addAlert(controlNumber ?: "", contactIdForLog, message)
+            startActivity(intent)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Error al enviar el mensaje.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error al abrir WhatsApp", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun buildAlertMessage(reason: String?, currentTime: String): String {
-        val controlDisplay = controlNumber?.takeIf { it.isNotBlank() } ?: "SIN_NUMERO_CONTROL"
-        val header = "EMERGENCIA - $controlDisplay - Por favor comparte tu ubicación AHORA"
-        val details = mutableListOf<String>()
-        if (!reason.isNullOrBlank()) {
-            details.add("Motivo: $reason")
-        }
-        details.add("Hora: $currentTime")
-
-        return buildString {
-            append(header)
-            if (details.isNotEmpty()) {
-                append("\n\n")
-                append(details.joinToString("\n"))
-            }
-        }
+    private fun buildAlertMessage(reason: String?, currentTime: String, lat: Double? = null, lng: Double? = null): String {
+        val controlDisplay = controlNumber?.takeIf { it.isNotBlank() } ?: "SIN_NUMERO"
+        val header = "🚨 EMERGENCIA - $controlDisplay 🚨"
+        val loc = if (lat != null && lng != null) "https://www.google.com/maps?q=$lat,$lng" else "No disponible"
+        
+        return "$header\n\nMotivo: $reason\nHora: $currentTime\nUbicación: $loc"
     }
 }

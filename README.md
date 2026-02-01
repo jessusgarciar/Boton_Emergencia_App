@@ -14,13 +14,16 @@
 
 ## 📋 Descripción
 
-**Botón de Emergencia** es una aplicación Android diseñada para enviar alertas de emergencia rápidas a través de WhatsApp. Con un solo toque, los usuarios pueden notificar a contactos predefinidos (enfermería, contacto cercano o tutor) sobre situaciones de emergencia.
+**Botón de Emergencia** es una aplicación Android diseñada para enviar alertas de emergencia rápidas a través de WhatsApp **y recolectar datos geoespaciales en tiempo real para análisis de salud**. Con un solo toque, los usuarios pueden notificar a contactos predefinidos (enfermería, contacto cercano o tutor) sobre situaciones de emergencia, mientras que cada alerta se registra en Firebase con su ubicación GPS para posteriores análisis con Python y generación de mapas de calor.
 
 ### ✨ Características Principales
 
 - 🔗 **Click-to-Chat**: Integración directa con WhatsApp usando `https://wa.me/`
 - 📱 **Mensaje Pre-llenado**: `EMERGENCIA - [NUMERO_CONTROL] - Por favor comparte tu ubicación AHORA`
-- 💾 **Registro Local**: Almacenamiento de alertas en base de datos SQLite
+- 📍 **Geolocalización en Tiempo Real**: Captura automática de coordenadas GPS en cada alerta
+- ☁️ **Almacenamiento en la Nube**: Firebase Realtime Database para recolección centralizada de datos
+- 💾 **Registro Local**: SQLite como respaldo offline
+- 🗺️ **Análisis Geoespacial**: Sistema Python para generar mapas de calor y análisis de zonas críticas
 - 👥 **Gestión de Contactos**: Administración de contactos de emergencia por usuario
 - 🔄 **Fallback Inteligente**: Detecta WhatsApp o WhatsApp Business, con chooser como respaldo
 
@@ -28,15 +31,33 @@
 
 ## 🛠️ Tecnologías Utilizadas
 
+### Frontend (Android)
 | Tecnología | Versión/Descripción | Propósito |
-|------------|---------------------|-----------|
+|------------|---------------------|-----------|-------|
 | **Kotlin** | Language | Lógica principal de la aplicación |
 | **Java** | Language | Helper de base de datos |
-| **Android SDK** | API 21+ | Framework de desarrollo |
-| **SQLite** | 3.x | Base de datos local |
+| **Android SDK** | API 24+ | Framework de desarrollo |
+| **SQLite** | 3.x | Base de datos local (offline) |
 | **Gradle** | 8.13 | Sistema de build |
 | **JDK** | 11+ (probado con 21) | Compilación |
 | **Material Design** | Components | UI/UX |
+
+### Backend & Cloud
+| Tecnología | Versión/Descripción | Propósito |
+|------------|---------------------|-----------|-------|
+| **Firebase Realtime Database** | 33.7.0 | Almacenamiento de alertas en la nube |
+| **Firebase Analytics** | Latest | Métricas de uso |
+| **Google Play Services Location** | Latest | Geolocalización precisa |
+
+### Análisis de Datos (Python)
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|-------|
+| **Python** | 3.10+ | Lenguaje base para análisis |
+| **Firebase Admin SDK** | 6.5.0 | Acceso a datos de Firebase |
+| **Pandas** | 2.2.0 | Procesamiento de datos |
+| **Folium** | 0.15.1 | Generación de mapas interactivos |
+| **Matplotlib/Seaborn** | Latest | Visualización estadística |
+| **GeoPy** | 2.4.1 | Cálculos geoespaciales |
 
 ---
 
@@ -49,32 +70,53 @@ Boton_Emergencia/
 │   │   ├── main/
 │   │   │   ├── java/com/example/boton_emergencia/
 │   │   │   │   ├── db/
-│   │   │   │   │   └── DbHelper.java          # 💾 Gestión SQLite
-│   │   │   │   ├── EmergencyActivity.kt       # 🚨 Lógica principal
+│   │   │   │   │   └── DbHelper.java          # 💾 Gestión SQLite (offline)
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── AlertData.kt           # 📊 Modelo Firebase
+│   │   │   │   │   └── Contact.kt             # 📦 Modelo de contactos
+│   │   │   │   ├── EmergencyActivity.kt       # 🚨 Lógica principal + Firebase
 │   │   │   │   ├── MainActivity.kt            # 🏠 Pantalla de login
 │   │   │   │   ├── RegisterActivity.kt        # 📝 Registro de usuarios
 │   │   │   │   ├── ContactListActivity.kt     # 📋 Lista de contactos
 │   │   │   │   ├── ContactoActivity.kt        # ➕ Agregar contacto
-│   │   │   │   ├── PhoneUtils.kt              # 📞 Validación de números
-│   │   │   │   └── Contact.kt                 # 📦 Modelo de datos
+│   │   │   │   └── PhoneUtils.kt              # 📞 Validación de números
 │   │   │   └── res/
 │   │   │       ├── layout/                    # 🎨 Interfaces XML
 │   │   │       └── drawable/                  # 🖼️ Recursos gráficos
 │   │   └── androidTest/                       # 🧪 Tests
-│   └── build.gradle.kts
+│   ├── build.gradle.kts
+│   └── google-services.json                   # 🔥 Config Firebase (NO COMMIT)
+├── python_analysis/                           # 🐍 Sistema de análisis
+│   ├── requirements.txt                       # 📦 Dependencias Python
+│   ├── .env.example                           # 🔐 Template de configuración
+│   ├── firebase_downloader.py                 # ⬇️ Descarga datos de Firebase
+│   ├── heatmap_generator.py                   # 🗺️ Generador de mapas de calor
+│   ├── data_analyzer.py                       # 📈 Análisis estadístico
+│   ├── data_export/                           # 📁 Datos descargados (gitignored)
+│   └── generated_maps/                        # 🖼️ Mapas generados (gitignored)
 ├── gradle/
+├── .gitignore                                 # 🔒 Protección de datos sensibles
 └── README.md
 ```
 
 ### 📐 Componentes Clave
 
+#### Android App
 | Componente | Responsabilidad |
-|------------|-----------------|
-| **EmergencyActivity** | Gestiona botones de emergencia y envío de mensajes |
-| **DbHelper** | CRUD de usuarios, contactos y alertas en SQLite |
+|------------|-----------------|---------------|
+| **EmergencyActivity** | Gestiona botones de emergencia, captura GPS, envío WhatsApp y sincronización Firebase |
+| **AlertData** | Modelo de datos para Firebase con geolocalización y timestamp |
+| **DbHelper** | CRUD de usuarios, contactos y alertas en SQLite (backup offline) |
 | **PhoneUtils** | Normalización y validación de números telefónicos |
 | **MainActivity** | Autenticación de usuarios |
 | **ContactListActivity** | Administración de contactos de emergencia |
+
+#### Python Analysis System
+| Script | Responsabilidad |
+|--------|-----------------|---------------|
+| **firebase_downloader.py** | Descarga datos de alertas desde Firebase Realtime Database |
+| **heatmap_generator.py** | Genera mapas de calor interactivos con Folium |
+| **data_analyzer.py** | Análisis estadístico: frecuencia, zonas críticas, patrones temporales |
 
 ---
 
@@ -110,6 +152,99 @@ Boton_Emergencia/
 
 ---
 
+## ☁️ Firebase Realtime Database
+
+### Estructura de Datos
+
+```json
+{
+  "alertas": {
+    "push_id_1": {
+      "controlNumber": "123456",
+      "tipo": "atención médica urgente en enfermería",
+      "latitud": 21.880633,
+      "longitud": -102.293777,
+      "fecha": "2026-01-31 14:35:22",
+      "timestamp": 1738345522000
+    },
+    "push_id_2": {
+      "controlNumber": "654321",
+      "tipo": "ayuda a mi contacto cercano",
+      "latitud": 21.882401,
+      "longitud": -102.291055,
+      "fecha": "2026-01-31 15:12:08",
+      "timestamp": 1738347728000
+    }
+  }
+}
+```
+
+### Campos de Alerta
+
+| Campo | Tipo | Descripción | Uso en Análisis |
+|-------|------|-------------|-----------------|---------------|
+| `controlNumber` | String | Identificador del usuario | Anonimización, estadísticas por usuario |
+| `tipo` | String | Categoría de emergencia | Clasificación de incidentes |
+| `latitud` | Double | Coordenada GPS latitud | Mapas de calor, clustering |
+| `longitud` | Double | Coordenada GPS longitud | Mapas de calor, clustering |
+| `fecha` | String | Timestamp legible | Análisis temporal |
+| `timestamp` | Long | Unix timestamp | Ordenamiento, series temporales |
+
+---
+
+## 🐍 Sistema de Análisis con Python
+
+### Flujo de Datos
+
+```mermaid
+graph LR
+    A[Android App] -->|GPS + Alerta| B[Firebase Realtime DB]
+    B -->|Firebase Admin SDK| C[Python Scripts]
+    C -->|Pandas Processing| D[Data Analysis]
+    D -->|Folium/Matplotlib| E[Mapas de Calor]
+    D -->|Statistics| F[Reportes]
+    E --> G[Dashboards Web]
+    F --> G
+```
+
+### Scripts Disponibles
+
+#### 1. `firebase_downloader.py`
+Descarga todos los datos de alertas desde Firebase y los exporta a CSV/JSON.
+
+```bash
+python firebase_downloader.py --output data_export/alertas.csv --format csv
+```
+
+#### 2. `heatmap_generator.py`
+Genera mapas de calor interactivos basados en la concentración de alertas.
+
+```bash
+python heatmap_generator.py --input data_export/alertas.csv --output generated_maps/heatmap.html
+```
+
+**Características:**
+- Mapas interactivos con Folium
+- Capas por tipo de emergencia
+- Clustering de zonas críticas
+- Radio de influencia configurable
+
+#### 3. `data_analyzer.py`
+Realiza análisis estadístico avanzado.
+
+```bash
+python data_analyzer.py --input data_export/alertas.csv --report generated_maps/report.html
+```
+
+**Métricas generadas:**
+- Frecuencia de alertas por hora/día/mes
+- Top 10 zonas de mayor incidencia
+- Distribución por tipo de emergencia
+- Patrones temporales (horarios pico)
+- Correlaciones geográficas
+
+---
+
 ## ⚙️ Requisitos del Entorno de Desarrollo
 
 | Requisito | Versión/Especificación |
@@ -120,6 +255,15 @@ Boton_Emergencia/
 | **Gradle** | 8.13 (incluido wrapper) |
 | **IDE** | Android Studio Hedgehog o superior |
 | **Dispositivo** | Físico con WhatsApp o emulador Google Play |
+
+### Para Análisis Python
+
+| Requisito | Versión/Especificación |
+|-----------|------------------------|------------------------|-------|
+| **Python** | 3.10+ |
+| **pip** | Latest |
+| **Cuenta Firebase** | Proyecto configurado con Realtime Database |
+| **Credenciales Admin** | JSON de service account |
 
 ---
 
@@ -161,15 +305,80 @@ adb devices
 adb -s <device-id> install -r app\build\outputs\apk\debug\app-debug.apk
 ```
 
-### 3️⃣ Configuración de Números de Emergencia
+### 3️⃣ Configuración de Firebase
+
+#### A. Obtener `google-services.json`
+
+1. Ir a [Firebase Console](https://console.firebase.google.com/)
+2. Crear proyecto o seleccionar existente
+3. Agregar app Android con package name: `com.example.boton_emergencia`
+4. Descargar `google-services.json`
+5. Colocar en `app/google-services.json` (ya está en .gitignore)
+
+#### B. Configurar Realtime Database
+
+1. En Firebase Console → Realtime Database → Crear base de datos
+2. Modo: **Modo de prueba** (para desarrollo)
+3. Reglas temporales:
+
+```json
+{
+  "rules": {
+    "alertas": {
+      ".read": "auth != null",
+      ".write": true
+    }
+  }
+}
+```
+
+⚠️ **PRODUCCIÓN**: Implementar reglas de seguridad estrictas
+
+#### C. Obtener Credenciales Admin (para Python)
+
+1. Firebase Console → Project Settings → Service Accounts
+2. Click "Generate new private key"
+3. Guardar como `python_analysis/firebase_credentials.json` (gitignored)
+
+### 4️⃣ Configuración de Números de Emergencia
 
 Editar constantes en `EmergencyActivity.kt`:
 
 ```kotlin
 companion object {
-    private const val ENFERMERIA_WHATSAPP = "+521111111111"
+    private const val ENFERMERIA_WHATSAPP = "+524493935203"
     private const val DEFAULT_CHATBOT_NUMBER = "521234567890"
 }
+```
+
+### 5️⃣ Configuración del Entorno Python
+
+```bash
+# Navegar al directorio de análisis
+cd python_analysis
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno (Windows)
+.\venv\Scripts\activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Copiar configuración
+cp .env.example .env
+
+# Editar .env con tus valores
+notepad .env
+```
+
+**Contenido de `.env`:**
+```env
+FIREBASE_CREDENTIALS_PATH=firebase_credentials.json
+FIREBASE_DATABASE_URL=https://tu-proyecto.firebaseio.com
+EXPORT_DIR=data_export
+MAPS_DIR=generated_maps
 ```
 
 ---
@@ -308,9 +517,11 @@ private fun buildAlertMessage(reason: String?, currentTime: String): String {
 
 - [ ] 📍 Compartir ubicación GPS automáticamente
 - [ ] 🔔 Notificaciones push para confirmación de recepción
+- [ ] 🌐 Soporte multi-idioma (español/inglés)
 - [ ] 🎨 Temas personalizables (claro/oscuro)
 - [ ] 📊 Dashboard con historial de alertas
-- [ ] 📞 Integración llamadas
+- [ ] 🔐 Autenticación biométrica
+- [ ] 📞 Integración con llamadas de emergencia (911)
 - [ ] 💬 Soporte para otros servicios de mensajería (Telegram, SMS)
 
 ---

@@ -13,3 +13,50 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase - Archivos de configuración sensibles
+google-services.json
+app/google-services.json
+**/google-services.json
+firebase-adminsdk-*.json
+firebase_credentials.json
+
+# Claves y certificados
+*.jks
+*.keystore
+*.key
+*.pem
+keystore.properties
+signing.properties
+
+# Variables de entorno
+.env
+*.env
+.env.local
+
+# Python - Entorno virtual y cache
+python_analysis/venv/
+python_analysis/.venv/
+python_analysis/__pycache__/
+python_analysis/*.pyc
+python_analysis/.env
+python_analysis/firebase_credentials.json
+
+# Datos exportados y generados
+python_analysis/data_export/
+python_analysis/generated_maps/
+python_analysis/*.csv
+python_analysis/*.json
+exported_data/
+*.csv
+data_export/
+generated_maps/
+
+# Logs y reportes
+*.log
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
