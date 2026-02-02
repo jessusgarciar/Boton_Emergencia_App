@@ -41,12 +41,20 @@ python_analysis/__pycache__/
 python_analysis/*.pyc
 python_analysis/.env
 python_analysis/firebase_credentials.json
+data_science/venv/
+data_science/.venv/
+data_science/__pycache__/
+data_science/*.pyc
+data_science/.env
+data_science/serviceAccountKey.json
 
 # Datos exportados y generados
 python_analysis/data_export/
 python_analysis/generated_maps/
 python_analysis/*.csv
 python_analysis/*.json
+data_science/mapa_riesgo_campus.html
+data_science/*.html
 exported_data/
 *.csv
 data_export/
